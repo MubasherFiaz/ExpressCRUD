@@ -1,5 +1,9 @@
 const HttpError = require("../models/http-error");
 const { validationResult } = require("express-validator");
+
+const MongoClient = require('mongodb').MongoClient;
+const url = 'mongodb+srv://mubasherfiaz05:YsVZeCZNlkZWMjUD@cluster0.wysa8.mongodb.net/products?retryWrites=true';
+
 const DUMMY_PLACES = [
   {
     id: "p1",
@@ -27,11 +31,22 @@ const DUMMY_PLACES = [
   },
 ];
 
-const getUsers = (req, res, next) => {
-  res.status(201).json({ users: DUMMY_PLACES });
+const getUsers = async(req, res, next) => {
+  const client = new MongoClient(url);
+  let products;
+  try {
+      await client.connect();
+      const db = client.db();
+      products = await db.collection('users').find().toArray(); 
+      
+  } catch (err) {
+     return res.json({ message: 'Could not retrieve products.' });
+  }
+  client.close();
+  res.json(products);
 };
 
-const addUsers = (req, res, next) => {
+const addUsers = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     console.log("errors", errors);
@@ -52,6 +67,17 @@ const addUsers = (req, res, next) => {
     email,
     image,
   };
+  const client = new MongoClient(url);
+  let result
+   try {
+      await client.connect();
+      const db = client.db();
+       result = await db.collection('users').insertOne(createdUser);
+     
+      console.log('res is',result);
+  } catch (err) {
+      return res.json({ message: 'Could not store data.' });
+  }
   console.log("createdUser", createdUser);
   DUMMY_PLACES.push(createdUser);
   res.status(201).json({ users: DUMMY_PLACES });
